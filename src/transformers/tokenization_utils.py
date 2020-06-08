@@ -897,7 +897,7 @@ class PreTrainedTokenizer(SpecialTokensMixin):
 
         # Added tokens
         self.added_tokens_encoder = {}
-        self.unique_added_tokens_encoder = set()
+        self.unique_added_tokens_encoder = []
         self.added_tokens_decoder = {}
 
         # inputs and kwargs for saving and re-loading (see ``from_pretrained`` and ``save_pretrained``)
@@ -1124,7 +1124,8 @@ class PreTrainedTokenizer(SpecialTokensMixin):
         tokenizer.init_kwargs = init_kwargs
 
         # update unique_added_tokens_encoder with special tokens for correct tokenization
-        tokenizer.unique_added_tokens_encoder.update(set(tokenizer.all_special_tokens))
+        u_add_tok = sorted(list(set(tokenizer.unique_added_tokens_encoder + tokenizer.all_special_tokens)))
+        tokenizer.unique_added_tokens_encoder = u_add_tok
 
         # Add supplementary tokens.
         if added_tokens_file is not None:
@@ -1133,7 +1134,8 @@ class PreTrainedTokenizer(SpecialTokensMixin):
             added_tok_decoder = {v: k for k, v in added_tok_encoder.items()}
             tokenizer.added_tokens_encoder.update(added_tok_encoder)
             tokenizer.added_tokens_decoder.update(added_tok_decoder)
-            tokenizer.unique_added_tokens_encoder.update(set(tokenizer.added_tokens_encoder.keys()))
+            u_add_tok = sorted(list(set(tokenizer.unique_added_tokens_encoder + list(tokenizer.added_tokens_encoder.keys()))))
+            tokenizer.unique_added_tokens_encoder = u_add_tok
 
         return tokenizer
 
@@ -1232,7 +1234,8 @@ class PreTrainedTokenizer(SpecialTokensMixin):
         added_tok_encoder = dict((tok, len(self) + i) for i, tok in enumerate(tokens_to_add))
         added_tok_decoder = {v: k for k, v in added_tok_encoder.items()}
         self.added_tokens_encoder.update(added_tok_encoder)
-        self.unique_added_tokens_encoder = set(self.added_tokens_encoder.keys()).union(set(self.all_special_tokens))
+        # we don't store a set because they are not deterministic with pickle/dill and it messes up with HuggingFace nlp library caching
+        self.unique_added_tokens_encoder = sorted(list(set(list(self.added_tokens_encoder.keys()) + self.all_special_tokens)))
         self.added_tokens_decoder.update(added_tok_decoder)
 
         return len(tokens_to_add)
